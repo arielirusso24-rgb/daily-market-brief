@@ -1,5 +1,5 @@
 # main.py
-"""Daily Market Brief - Clean execution."""
+"""Daily Market Brief - Main Entry Point"""
 
 import os
 import sys
@@ -54,24 +54,25 @@ def main():
     market_formatted = format_market_data(market_data)
     print(market_formatted)
     
-    # Fetch news (silently)
+    # Fetch news
     print("\n📰 Checking news sources...")
     headlines = get_news_headlines(max_headlines=10)
     headlines_formatted = format_headlines(headlines)
     print(headlines_formatted)
     
     # Generate brief with Claude
-    print("\n🤖 Generating market analysis...\n")
+    print("\n🤖 Generating market analysis...")
     try:
         brief = generate_brief(market_data, headlines)
+        print("✅ Brief generated successfully\n")
         print("=" * 80)
         print("📋 DAILY MARKET BRIEF")
         print("=" * 80)
         print(brief)
         print("=" * 80)
     except Exception as e:
-        print(f"⚠️ Error generating brief: {e}")
-        brief = "Brief generation failed"
+        print(f"❌ Error generating brief: {e}")
+        brief = f"Brief generation failed: {str(e)}"
     
     # Save to log
     print("\n💾 Saving brief...")
@@ -81,7 +82,7 @@ def main():
     # Send email
     print("📧 Sending email...")
     email_subject = f"Daily Market Brief - {datetime.now().strftime('%B %d, %Y')}"
-    send_email_brief(email_subject, full_output)
+    send_email_brief(email_subject, market_formatted, headlines_formatted, brief)
     
     print("\n✨ Done!\n")
 

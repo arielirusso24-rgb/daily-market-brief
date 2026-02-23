@@ -1,5 +1,5 @@
 # brief_generator.py
-"""Generate comprehensive market brief - always provides value."""
+"""Generate comprehensive market brief with enhanced analysis."""
 
 import os
 from anthropic import Anthropic
@@ -9,120 +9,133 @@ from market_data import get_sector_summary
 
 def generate_brief(market_data, headlines):
     """
-    Generate comprehensive market brief.
-    ALWAYS generates useful insights even without external news.
+    Generate comprehensive market brief with geopolitical context.
     """
     api_key = os.getenv("ANTHROPIC_API_KEY")
     if not api_key:
-        raise ValueError("ANTHROPIC_API_KEY not found in environment variables")
+        raise ValueError("ANTHROPIC_API_KEY not found")
     
-    client = Anthropic(api_key=api_key)
-    
-    # Get sector performance
-    sector_summary = get_sector_summary(market_data)
-    
-    # Format market overview
-    market_summary = []
-    
-    # Add indices
-    for name, data in market_data.items():
-        if not name.startswith('_') and data.get('is_index'):
-            sign = "+" if data['change_percent'] >= 0 else ""
-            status = "" if data.get('is_live') else f" (as of {data.get('latest_date')})"
-            market_summary.append(f"{name}: ${data['latest_price']:,.2f} ({sign}{data['change_percent']:.2f}%){status}")
-    
-    # Add top gainers
-    gainers_text = ""
-    if '_gainers' in market_data and market_data['_gainers']:
-        gainers_text = "\n\nTOP GAINERS:\n" + "\n".join([
-            f"- {stock['name']} ({stock['symbol']}): +{stock['change_percent']:.2f}% | Sector: {stock.get('sector', 'N/A')}"
-            for stock in market_data['_gainers']
-        ])
-    
-    # Add top losers
-    losers_text = ""
-    if '_losers' in market_data and market_data['_losers']:
-        losers_text = "\n\nTOP DECLINERS:\n" + "\n".join([
-            f"- {stock['name']} ({stock['symbol']}): {stock['change_percent']:.2f}% | Sector: {stock.get('sector', 'N/A')}"
-            for stock in market_data['_losers']
-        ])
-    
-    # Add sector performance
-    sector_text = ""
-    if sector_summary:
-        sorted_sectors = sorted(sector_summary.items(), key=lambda x: x[1], reverse=True)
-        sector_text = "\n\nSECTOR PERFORMANCE:\n" + "\n".join([
-            f"- {sector}: {change:+.2f}%"
-            for sector, change in sorted_sectors[:10]
-        ])
-    
-    # Format headlines (or note their absence)
-    has_headlines = len(headlines) > 0
-    if has_headlines:
-        headlines_text = "\n\nRECENT HEADLINES:\n" + "\n".join([
-            f"- {h['title']} ({h['source']})" 
-            for h in headlines[:10]
-        ])
-    else:
-        headlines_text = "\n\nNOTE: External news feeds temporarily unavailable. Analysis focuses on market data and sector trends."
-    
-    # Create comprehensive prompt
-    prompt = f"""You are a senior Wall Street analyst creating a morning market brief for {datetime.now().strftime("%B %d, %Y")}.
+    try:
+        client = Anthropic(api_key=api_key)
+        
+        # Get sector performance
+        sector_summary = get_sector_summary(market_data)
+        
+        # Format market overview
+        market_summary = []
+        indices_data = {}
+        
+        # Collect indices data
+        for name, data in market_data.items():
+            if not name.startswith('_') and data.get('is_index'):
+                sign = "+" if data['change_percent'] >= 0 else ""
+                indices_data[name] = {
+                    'price': data['latest_price'],
+                    'change': data['change_percent'],
+                    'date': data.get('latest_date')
+                }
+                market_summary.append(
+                    f"{name}: ${data['latest_price']:.2f} ({sign}{data['change_percent']:.2f}%)"
+                )
+        
+        # Format gainers
+        gainers_text = ""
+        if '_gainers' in market_data and market_data['_gainers']:
+            gainers_text = "\n\nTOP GAINERS:\n" + "\n".join([
+                f"- {stock['name']} ({stock['symbol']}): +{stock['change_percent']:.2f}% | {stock.get('sector', 'N/A')}"
+                for stock in market_data['_gainers']
+            ])
+        
+        # Format losers
+        losers_text = ""
+        if '_losers' in market_data and market_data['_losers']:
+            losers_text = "\n\nTOP DECLINERS:\n" + "\n".join([
+                f"- {stock['name']} ({stock['symbol']}): {stock['change_percent']:.2f}% | {stock.get('sector', 'N/A')}"
+                for stock in market_data['_losers']
+            ])
+        
+        # Format sectors
+        sector_text = ""
+        if sector_summary:
+            sorted_sectors = sorted(sector_summary.items(), key=lambda x: x[1], reverse=True)
+            sector_text = "\n\nSECTOR PERFORMANCE:\n" + "\n".join([
+                f"- {sector}: {change:+.2f}%"
+                for sector, change in sorted_sectors[:10]
+            ])
+        
+        # Format headlines with better context
+        headlines_text = ""
+        if headlines:
+            headlines_text = "\n\nKEY HEADLINES TODAY:\n" + "\n".join([
+                f"- [{h['source']}] {h['title']}\n  Link: {h['link']}"
+                for h in headlines[:10]
+            ])
+        else:
+            headlines_text = "\n\nNOTE: Limited news availability. Focusing on market data analysis."
+        
+        # Create enhanced prompt
+        prompt = f"""You are a senior Wall Street analyst creating a morning market brief for {datetime.now().strftime("%B %d, %Y")}.
 
-MARKET DATA:
-{chr(10).join(market_summary) if market_summary else "Market indices data processing..."}
+MARKET DATA (as of previous close):
+{chr(10).join(market_summary)}
 {gainers_text}
 {losers_text}
 {sector_text}
 {headlines_text}
 
-Your task: Create a comprehensive, actionable market brief that provides real value to investors.
+Your task: Create a comprehensive, professional market brief with the following sections:
 
-Structure your brief as follows:
+**1. MARKET OVERVIEW & OPENING CONTEXT** (3-4 sentences)
+- Describe how markets opened today based on the data shown (which reflects the previous close)
+- Explain the PRIMARY DRIVERS behind index movements (be specific - mention actual catalysts)
+- Note if this is a continuation of a trend or a reversal
+- Reference the actual percentage changes you see in the data
 
-**EXECUTIVE SUMMARY** (2-3 sentences)
-- Overall market sentiment and direction
-- Key drivers from the data available
+**2. KEY MARKET MOVERS** (5-7 bullets)
+- Analyze top gainers and losers with SPECIFIC EXPLANATIONS
+- Connect stock movements to broader themes (earnings, sector rotation, macro events)
+- Identify sector patterns (e.g., "Technology weakness led by...")
+- Mention specific percentage moves and why they matter
 
-**MARKET MOVERS & NOTABLE STOCKS** (5-7 bullets)
-- Analyze the top gainers and losers
-- Identify WHY certain stocks/sectors are moving
-- Highlight companies showing interesting patterns
-- Point out stocks in bullish sectors worth watching
+**3. GEOPOLITICAL & MACRO CONTEXT** (3-4 bullets)
+- Based on the headlines provided, identify any:
+  • International developments affecting markets (trade, conflicts, policy)
+  • Central bank actions or monetary policy shifts
+  • Economic data releases or policy announcements
+  • Regulatory or political developments
+- If headlines don't cover geopolitics, note "Limited geopolitical headlines today - focus remains on..."
 
-**SECTOR ANALYSIS** (4-5 bullets)
-- Which sectors are leading/lagging
-- Emerging trends visible in sector performance
-- Industries showing momentum
-- Contrarian opportunities in oversold sectors
+**4. SECTOR ANALYSIS** (3-4 bullets)
+- Which sectors are leading/lagging and WHY
+- Emerging trends in bullish sectors
+- Contrarian opportunities in oversold areas
+- Rotation patterns (defensive vs growth, etc.)
 
-**INVESTMENT THEMES & OPPORTUNITIES** (4-5 bullets)
-- Key themes emerging from market data
-- Stocks positioned well in trending sectors
-- Risk factors visible in the data
-- Forward-looking catalysts to watch
-
-**WHAT MATTERS TODAY** (1 paragraph)
-- Synthesize the key takeaways
-- Actionable insights for today's trading
-- What investors should monitor
+**5. WHAT MATTERS TODAY** (2-3 sentences)
+- Bottom line: What should investors focus on?
+- Key levels or catalysts to watch
+- Risk/opportunity assessment
 
 CRITICAL INSTRUCTIONS:
-- Even without external news, provide deep analysis of stock movements and sector trends
-- Be specific: mention actual stock symbols, percentages, and sector names
-- Identify patterns: "Tech stocks showing strength with NVDA +X%, MSFT +Y%"
-- Always provide actionable insights
-- Connect market moves to broader themes (AI adoption, rate sensitivity, etc.)
-- Professional, data-driven tone - Bloomberg/Barron's quality
+- Be SPECIFIC with numbers (mention actual %changes, price levels)
+- EXPLAIN causality - don't just state movements, say WHY
+- Connect macro events to market action
+- Professional Bloomberg/Barron's tone
+- If data is from previous close, frame it as "Yesterday's close showed..."
+- Base geopolitical analysis on actual headlines provided
+- If brief on headlines, acknowledge it and focus on technical/sector analysis
 
-Generate the brief NOW based on available data."""
+Generate the brief NOW:"""
 
-    message = client.messages.create(
-        model="claude-sonnet-4-20250514",
-        max_tokens=2000,
-        messages=[
-            {"role": "user", "content": prompt}
-        ]
-    )
-    
-    return message.content[0].text
+        message = client.messages.create(
+            model="claude-sonnet-4-20250514",
+            max_tokens=2500,
+            temperature=0.7,
+            messages=[{"role": "user", "content": prompt}]
+        )
+        
+        return message.content[0].text
+        
+    except Exception as e:
+        print(f"Error generating brief with Claude: {e}")
+        return f"Brief generation encountered an error: {str(e)}\n\nPlease check the logs for details."
