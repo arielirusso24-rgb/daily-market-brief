@@ -1,17 +1,13 @@
 # brief_generator.py
-"""Generate comprehensive market brief with enhanced analysis."""
+"""Generate market brief with Claude API."""
 
 import os
 from anthropic import Anthropic
 from datetime import datetime
-from market_data import get_sector_summary
 
 
 def generate_executive_summary(market_data):
-    """
-    Generate a brief executive summary of market conditions.
-    """
-    # Get main indices
+    """Generate brief market opening summary."""
     indices_down = 0
     indices_total = 0
     avg_change = 0
@@ -25,127 +21,136 @@ def generate_executive_summary(market_data):
     
     if indices_total > 0:
         avg_change = avg_change / indices_total
-        
         direction = "negative" if indices_down >= 3 else "positive" if indices_down == 0 else "mixed"
         
-        summary = f"""
+        return f"""
 🎯 MARKET OPENING CONTEXT
 
-Markets reflect {direction} sentiment from yesterday's close. Major indices are averaging {avg_change:+.2f}% change. 
-{'All major indices closed lower' if indices_down == 4 else 'Most indices showed weakness' if indices_down >= 2 else 'Markets showed relative strength'}, 
-with the data showing movements relative to the previous trading day's close.
-
-Key levels to watch: S&P 500 support at current levels, with {abs(avg_change):.1f}% moves indicating {'elevated volatility' if abs(avg_change) > 1 else 'normal trading conditions'}.
+Markets show {direction} sentiment from yesterday's close. Major indices averaging {avg_change:+.2f}% change.
+{'All major indices closed lower' if indices_down == 4 else 'Most indices showed weakness' if indices_down >= 2 else 'Markets showed strength'}.
+Data reflects changes versus previous trading day's close.
 """
-        return summary
     
-    return "Market data processing..."
+    return "Processing market data..."
+
+
+def get_sector_summary(market_data):
+    """Get sector performance summary."""
+    if '_all_stocks' not in market_data:
+        return {}
+    
+    sector_performance = {}
+    for stock in market_data['_all_stocks']:
+        sector = stock.get('sector')
+        if sector and sector != 'Unknown':
+            if sector not in sector_performance:
+                sector_performance[sector] = []
+            sector_performance[sector].append(stock['change_percent'])
+    
+    return {
+        sector: round(sum(changes) / len(changes), 2)
+        for sector, changes in sector_performance.items()
+        if changes
+    }
 
 
 def generate_brief(market_data, headlines):
     """
-    Generate comprehensive market brief with geopolitical context.
+    Generate market brief using Claude.
+    Ultra-simple version without any extra parameters.
     """
     api_key = os.getenv("ANTHROPIC_API_KEY")
+    
     if not api_key:
-        return "ERROR: ANTHROPIC_API_KEY not found in environment variables"
+        return "❌ ERROR: ANTHROPIC_API_KEY not found in environment"
     
     try:
+        # Initialize client - SIMPLE, no extra parameters
         client = Anthropic(api_key=api_key)
         
-        # Get sector performance
-        sector_summary = get_sector_summary(market_data)
-        
-        # Format market overview
-        market_summary = []
-        
-        # Collect indices data
+        # Format market data
+        market_lines = []
         for name, data in market_data.items():
             if not name.startswith('_') and data.get('is_index'):
                 sign = "+" if data['change_percent'] >= 0 else ""
-                market_summary.append(
-                    f"{name}: ${data['latest_price']:.2f} ({sign}{data['change_percent']:.2f}%) vs previous close"
-                )
+                market_lines.append(f"{name}: ${data['latest_price']:.2f} ({sign}{data['change_percent']:.2f}%)")
         
-        # Format gainers with prices
-        gainers_text = ""
-        if '_gainers' in market_data and market_data['_gainers']:
-            gainers_text = "\n\nTOP GAINERS:\n" + "\n".join([
-                f"- {stock['name']} ({stock['symbol']}): ${stock['latest_price']:.2f} (+{stock['change_percent']:.2f}%) | {stock.get('sector', 'N/A')}"
-                for stock in market_data['_gainers']
-            ])
+        # Format gainers
+        gainers = []
+        if '_gainers' in market_data:
+            for stock in market_data['_gainers'][:5]:
+                gainers.append(f"{stock['name']} ({stock['symbol']}): ${stock['latest_price']:.2f} (+{stock['change_percent']:.2f}%) | {stock.get('sector', 'N/A')}")
         
-        # Format losers with prices
-        losers_text = ""
-        if '_losers' in market_data and market_data['_losers']:
-            losers_text = "\n\nTOP DECLINERS:\n" + "\n".join([
-                f"- {stock['name']} ({stock['symbol']}): ${stock['latest_price']:.2f} ({stock['change_percent']:.2f}%) | {stock.get('sector', 'N/A')}"
-                for stock in market_data['_losers']
-            ])
+        # Format losers
+        losers = []
+        if '_losers' in market_data:
+            for stock in market_data['_losers'][:5]:
+                losers.append(f"{stock['name']} ({stock['symbol']}): ${stock['latest_price']:.2f} ({stock['change_percent']:.2f}%) | {stock.get('sector', 'N/A')}")
         
         # Format sectors
-        sector_text = ""
-        if sector_summary:
-            sorted_sectors = sorted(sector_summary.items(), key=lambda x: x[1], reverse=True)
-            sector_text = "\n\nSECTOR PERFORMANCE:\n" + "\n".join([
-                f"- {sector}: {change:+.2f}%"
-                for sector, change in sorted_sectors[:10]
-            ])
+        sector_summary = get_sector_summary(market_data)
+        sectors = [f"{sector}: {change:+.2f}%" for sector, change in sorted(sector_summary.items(), key=lambda x: x[1], reverse=True)[:8]]
         
-        # Format headlines with summaries
-        headlines_text = ""
+        # Format headlines
+        headline_texts = []
         if headlines:
-            headlines_text = "\n\nKEY HEADLINES & SUMMARIES:\n" + "\n".join([
-                f"{i+1}. {h['title']}\n   Source: {h['source']}\n   Summary: {h.get('description', 'Full article available at link')}"
-                for i, h in enumerate(headlines[:8])
-            ])
-        else:
-            headlines_text = "\n\nNOTE: Limited headline availability today."
+            for h in headlines[:6]:
+                headline_texts.append(f"- {h['title']} ({h['source']})")
         
-        # Create enhanced prompt
-        prompt = f"""You are a senior Wall Street analyst creating a morning market brief for {datetime.now().strftime("%B %d, %Y")}.
+        # Build prompt
+        prompt = f"""Create a professional market brief for {datetime.now().strftime("%B %d, %Y")}.
 
-MARKET DATA (yesterday's close, showing change vs previous day):
-{chr(10).join(market_summary)}
-{gainers_text}
-{losers_text}
-{sector_text}
-{headlines_text}
+INDICES (vs previous close):
+{chr(10).join(market_lines)}
 
-Create a professional market brief with these sections:
+TOP GAINERS:
+{chr(10).join(gainers)}
 
-**1. KEY MARKET MOVERS** (5-7 bullets)
-- Analyze top gainers/losers with SPECIFIC reasons
-- Connect to broader themes (earnings, sector rotation, macro)
-- Use exact numbers from the data
+TOP DECLINERS:
+{chr(10).join(losers)}
 
-**2. GEOPOLITICAL & MACRO CONTEXT** (3-4 bullets)
-- Identify international developments from headlines
-- Central bank actions, economic data, policy changes
-- If headlines limited, note "Markets focused on domestic factors..."
+SECTORS:
+{chr(10).join(sectors)}
 
-**3. SECTOR ANALYSIS** (3-4 bullets)
-- Leading/lagging sectors with explanations
-- Emerging trends and rotation patterns
-- Defensive vs growth positioning
+HEADLINES:
+{chr(10).join(headline_texts) if headline_texts else "Limited headlines today"}
 
-**4. WHAT MATTERS TODAY** (2-3 sentences)
+Write a brief with:
+
+**KEY MARKET MOVERS** (4-5 bullets)
+- Explain top gainers/losers with specific reasons
+- Connect to broader market themes
+
+**GEOPOLITICAL & MACRO** (2-3 bullets)
+- Key developments from headlines
+- If limited news, note domestic focus
+
+**SECTOR ANALYSIS** (2-3 bullets)
+- Leading/lagging sectors
+- Rotation patterns
+
+**WHAT MATTERS TODAY** (1-2 sentences)
 - Key takeaway for investors
-- Levels and catalysts to watch
-- Risk/opportunity balance
+- Levels to watch
 
-Be SPECIFIC with data, explain causality, professional Bloomberg tone."""
+Be specific with numbers, professional tone."""
 
-        # Call Claude API (corrected - no proxies parameter)
-        message = client.messages.create(
+        # Call API - SIMPLE version
+        response = client.messages.create(
             model="claude-sonnet-4-20250514",
-            max_tokens=2500,
-            messages=[{"role": "user", "content": prompt}]
+            max_tokens=2000,
+            messages=[
+                {"role": "user", "content": prompt}
+            ]
         )
         
-        return message.content[0].text
+        # Extract text
+        brief_text = response.content[0].text
+        
+        print("✅ Brief generated successfully")
+        return brief_text
         
     except Exception as e:
-        error_msg = f"Brief generation error: {str(e)}"
-        print(f"❌ {error_msg}")
+        error_msg = f"❌ Brief generation failed: {str(e)}"
+        print(error_msg)
         return error_msg
