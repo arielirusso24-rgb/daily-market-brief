@@ -106,35 +106,40 @@ def _fetch_ticker_data(name, symbol, is_index=False):
 
 
 def format_market_data(market_data):
-    """Format market data - clean professional output."""
+    """Format market data with executive summary and stock prices."""
+    from brief_generator import generate_executive_summary
+    
     lines = ["📊 MARKET OVERVIEW", "=" * 70]
     
     if not market_data:
         lines.append("\nMarket data loading...")
         return "\n".join(lines)
     
+    # Add executive summary
+    summary = generate_executive_summary(market_data)
+    lines.append(summary)
+    
     # Indices
-    lines.append("\n🏛️ MAJOR INDICES:")
+    lines.append("\n🏛️ MAJOR INDICES (vs previous close):")
     for name, data in market_data.items():
         if not name.startswith('_') and data.get('is_index'):
             change_symbol = "📈" if data['change_percent'] >= 0 else "📉"
             sign = "+" if data['change_percent'] >= 0 else ""
-            status = f"[{data.get('latest_date')}]"
-            lines.append(f"  {name}: ${data['latest_price']:.2f} ({sign}{data['change_percent']:.2f}%) {change_symbol} {status}")
+            lines.append(f"  {name}: ${data['latest_price']:.2f} ({sign}{data['change_percent']:.2f}%) {change_symbol} [{data.get('latest_date')}]")
     
-    # Top gainers
+    # Top gainers with prices
     if '_gainers' in market_data and market_data['_gainers']:
-        lines.append("\n🚀 TOP GAINERS:")
+        lines.append("\n🚀 TOP GAINERS (with stock prices):")
         for data in market_data['_gainers']:
             sector_info = f" | {data['sector']}" if data.get('sector') else ""
-            lines.append(f"  {data['name']} ({data['symbol']}): +{data['change_percent']:.2f}%{sector_info}")
+            lines.append(f"  {data['name']} ({data['symbol']}): ${data['latest_price']:.2f} (+{data['change_percent']:.2f}%){sector_info}")
     
-    # Top losers
+    # Top losers with prices
     if '_losers' in market_data and market_data['_losers']:
-        lines.append("\n📉 TOP DECLINERS:")
+        lines.append("\n📉 TOP DECLINERS (with stock prices):")
         for data in market_data['_losers']:
             sector_info = f" | {data['sector']}" if data.get('sector') else ""
-            lines.append(f"  {data['name']} ({data['symbol']}): {data['change_percent']:.2f}%{sector_info}")
+            lines.append(f"  {data['name']} ({data['symbol']}): ${data['latest_price']:.2f} ({data['change_percent']:.2f}%){sector_info}")
     
     return "\n".join(lines)
 

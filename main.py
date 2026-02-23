@@ -82,7 +82,7 @@ def main():
     # Send email
     print("📧 Sending email...")
     email_subject = f"Daily Market Brief - {datetime.now().strftime('%B %d, %Y')}"
-    send_email_brief(email_subject, market_formatted, headlines_formatted, brief)
+    send_email_brief(email_subject, market_formatted, headlines, brief)
     
     print("\n✨ Done!\n")
 
