@@ -1,0 +1,12 @@
+requirements.txt
+cat > ~/Documents/GitHub/daily-market-brief/requirements.txt << 'EOF'
+yfinance==1.2.0
+feedparser==6.0.11
+anthropic==0.39.0
+python-dotenv==1.0.0
+requests==2.31.0
+pytz==2024.1
+matplotlib==3.8.2
+pandas==2.1.4
+numpy==1.26.4
+EOF

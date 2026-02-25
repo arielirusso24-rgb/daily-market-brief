@@ -112,10 +112,16 @@ def main():
     try:
         index_chart = create_index_chart()
         sector_chart = create_sector_performance_chart(market_data)
-        charts_html = index_chart + "<br><br>" + sector_chart
-        print("✅ Charts generated")
+        
+        if index_chart and sector_chart:
+            charts_html = index_chart + "<br><br>" + sector_chart
+            print("✅ Charts generated successfully")
+        else:
+            print("⚠️ Charts returned empty")
     except Exception as e:
-        print(f"⚠️ Could not generate charts: {e}")
+        print(f"⚠️ Chart generation error: {e}")
+        import traceback
+        traceback.print_exc()
     
     # Send email with charts
     print("📧 Sending email...")
