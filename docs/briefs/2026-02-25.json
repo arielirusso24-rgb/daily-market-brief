@@ -1,0 +1,23 @@
+{
+  "date": "2026-02-25T13:35:50.927069",
+  "date_formatted": "February 25, 2026",
+  "market_summary": {
+    "S&P 500 (SPY)": {
+      "price": 692.28,
+      "change": 0.72
+    },
+    "Nasdaq 100 (QQQ)": {
+      "price": 615.37,
+      "change": 1.23
+    },
+    "Dow Jones (DIA)": {
+      "price": 494.51,
+      "change": 0.55
+    },
+    "Russell 2000 (IWM)": {
+      "price": 264.52,
+      "change": 0.45
+    }
+  },
+  "brief": "# Market Brief - February 25, 2026\n\n## KEY MARKET MOVERS\n\u2022 **Technology leads broad-based rally**: Snowflake (+5.07%) and Palantir (+4.57%) drove tech sector gains of +2.00%, with enterprise software companies benefiting from continued AI infrastructure spending momentum\n\u2022 **Healthcare mixed signals**: UnitedHealth surged +3.05% on strong managed care fundamentals, while Eli Lilly declined -0.85% as investors took profits following recent biotech outperformance\n\u2022 **Consumer defensive weakness**: Walmart (-0.53%) and Costco (-0.68%) pressured the defensive sector (-0.55%), suggesting renewed risk appetite as investors rotate out of safety plays\n\u2022 **Microsoft maintains momentum**: MSFT gained +2.44% to $398.48, approaching the psychological $400 level on continued cloud and AI tailwinds\n\u2022 **Energy sector lags**: Chevron's -0.73% decline contributed to energy's -0.62% underperformance, reflecting ongoing concerns about demand outlook\n\n## GEOPOLITICAL & MACRO\n\u2022 **Domestic market focus**: Limited headline flow suggests investors are concentrating on corporate fundamentals and sector rotation dynamics rather than external catalysts\n\u2022 **Risk-on sentiment prevails**: The rotation from defensive sectors into technology and financials indicates growing investor confidence in economic resilience\n\n## SECTOR ANALYSIS\n\u2022 **Growth outperforms value**: Technology's +2.00% leadership versus consumer defensive's -0.55% decline signals a clear growth-oriented rotation pattern\n\u2022 **Financial services momentum**: The +1.12% gain in financials suggests continued optimism around interest rate environment and credit conditions\n\u2022 **Cyclical strength**: Consumer cyclical (+0.78%) outpacing defensive sectors reinforces the risk-on theme across equity markets\n\n## WHAT MATTERS TODAY\nMarkets are displaying healthy risk appetite with technology-led gains and defensive sector rotation, suggesting underlying economic confidence. Key levels to monitor: S&P 500 holding above 690 support and Microsoft's approach to the $400 milestone."
+}

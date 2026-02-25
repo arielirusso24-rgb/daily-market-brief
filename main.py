@@ -104,26 +104,25 @@ def main():
     
     print(f"✅ Brief saved to {brief_file}")
     
-    # Generate charts
-    print("\n📊 Generating charts...")
-    from chart_generator import create_index_chart, create_sector_performance_chart
+    # # CHARTS DISABLED TEMPORARILY
+    # print("📊 Generating charts...")
+    # charts_html = ""
+    # try:
+    #     from chart_generator import create_index_chart, create_sector_performance_chart
+    #     index_chart = create_index_chart()
+    #     sector_chart = create_sector_performance_chart(market_data)
+    #     
+    #     if index_chart and sector_chart:
+    #         charts_html = index_chart + "<br><br>" + sector_chart
+    #         print("✅ Charts generated successfully")
+    #     else:
+    #         print("⚠️ Charts returned empty")
+    # except Exception as e:
+    #     print(f"⚠️ Chart generation error: {e}")
     
-    charts_html = ""
-    try:
-        index_chart = create_index_chart()
-        sector_chart = create_sector_performance_chart(market_data)
-        
-        if index_chart and sector_chart:
-            charts_html = index_chart + "<br><br>" + sector_chart
-            print("✅ Charts generated successfully")
-        else:
-            print("⚠️ Charts returned empty")
-    except Exception as e:
-        print(f"⚠️ Chart generation error: {e}")
-        import traceback
-        traceback.print_exc()
+    charts_html = ""  # Empty - no charts
     
-    # Send email with charts
+    # Send email
     print("📧 Sending email...")
     email_subject = f"Daily Market Brief - {datetime.now().strftime('%B %d, %Y')}"
     send_email_brief(email_subject, market_formatted, headlines, brief, charts_html)
