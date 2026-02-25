@@ -1,8 +1,7 @@
 # brief_generator.py
-"""Generate market brief with Claude API."""
+"""Generate market brief with Claude API - FIXED VERSION."""
 
 import os
-from anthropic import Anthropic
 from datetime import datetime
 
 
@@ -55,17 +54,17 @@ def get_sector_summary(market_data):
 
 
 def generate_brief(market_data, headlines):
-    """
-    Generate market brief using Claude.
-    Ultra-simple version without any extra parameters.
-    """
+    """Generate market brief using Claude - SIMPLE VERSION."""
     api_key = os.getenv("ANTHROPIC_API_KEY")
     
     if not api_key:
-        return "❌ ERROR: ANTHROPIC_API_KEY not found in environment"
+        return "ERROR: ANTHROPIC_API_KEY not found in environment"
     
     try:
-        # Initialize client - SIMPLE, no extra parameters
+        # Import here to avoid any initialization issues
+        from anthropic import Anthropic
+        
+        # Initialize client with ONLY api_key - nothing else
         client = Anthropic(api_key=api_key)
         
         # Format market data
@@ -135,13 +134,11 @@ Write a brief with:
 
 Be specific with numbers, professional tone."""
 
-        # Call API - SIMPLE version
+        # Call API with minimal parameters
         response = client.messages.create(
             model="claude-sonnet-4-20250514",
             max_tokens=2000,
-            messages=[
-                {"role": "user", "content": prompt}
-            ]
+            messages=[{"role": "user", "content": prompt}]
         )
         
         # Extract text
@@ -151,6 +148,8 @@ Be specific with numbers, professional tone."""
         return brief_text
         
     except Exception as e:
-        error_msg = f"❌ Brief generation failed: {str(e)}"
-        print(error_msg)
+        error_msg = f"Brief generation failed: {str(e)}"
+        print(f"❌ {error_msg}")
+        import traceback
+        traceback.print_exc()
         return error_msg
