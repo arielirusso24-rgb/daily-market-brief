@@ -29,8 +29,8 @@ def format_headlines_html(headlines):
     return html_content
 
 
-def send_email_brief(subject, market_formatted, headlines_list, brief, to_email=None):
-    """Send market brief via Gmail SMTP with proper HTML formatting."""
+def send_email_brief(subject, market_formatted, headlines_list, brief, charts_html="", to_email=None):
+    """Send market brief with optional charts."""
     from_email = os.getenv("GMAIL_ADDRESS")
     password = os.getenv("GMAIL_APP_PASSWORD")
     
@@ -38,8 +38,14 @@ def send_email_brief(subject, market_formatted, headlines_list, brief, to_email=
         print("❌ Email credentials not found")
         return False
     
-    if not to_email:
-        to_email = from_email
+    # Recipients
+    recipients = [
+        "arielirusso24@gmail.com",
+        "lhaitog@gmail.com",
+    ]
+    
+    if to_email:
+        recipients = [to_email] if isinstance(to_email, str) else to_email
     
     try:
         # Format headlines as HTML
@@ -54,10 +60,11 @@ def send_email_brief(subject, market_formatted, headlines_list, brief, to_email=
         <html>
         <head>
             <style>
-                body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 900px; margin: 0 auto; }}
+                body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 900px; margin: 0 auto; padding: 20px; }}
                 h2 {{ color: #1a73e8; border-bottom: 3px solid #1a73e8; padding-bottom: 10px; margin-top: 30px; }}
                 h3 {{ color: #34a853; margin-top: 25px; }}
                 .overview {{ background: #f8f9fa; padding: 20px; border-left: 5px solid #1a73e8; margin: 20px 0; white-space: pre-wrap; font-family: 'Courier New', monospace; font-size: 13px; }}
+                .charts {{ margin: 30px 0; }}
                 .brief {{ background: #fff; padding: 20px; margin: 20px 0; border: 1px solid #ddd; border-radius: 5px; white-space: pre-wrap; line-height: 1.8; }}
                 .footer {{ margin-top: 40px; padding: 20px; border-top: 2px solid #ddd; font-size: 12px; color: #666; text-align: center; }}
             </style>
@@ -66,6 +73,8 @@ def send_email_brief(subject, market_formatted, headlines_list, brief, to_email=
             <h2>📊 Daily Market Brief - {datetime.now().strftime("%B %d, %Y")}</h2>
             
             <div class="overview">{market_safe}</div>
+            
+            {f'<div class="charts"><h3>📈 Market Charts</h3>{charts_html}</div>' if charts_html else ''}
             
             <h3>📰 Market News & Headlines</h3>
             {headlines_html}
@@ -85,7 +94,7 @@ def send_email_brief(subject, market_formatted, headlines_list, brief, to_email=
         # Create message
         msg = MIMEMultipart('alternative')
         msg['From'] = from_email
-        msg['To'] = to_email
+        msg['To'] = ", ".join(recipients)
         msg['Subject'] = subject
         
         # Attach HTML
@@ -99,7 +108,7 @@ def send_email_brief(subject, market_formatted, headlines_list, brief, to_email=
         server.send_message(msg)
         server.quit()
         
-        print(f"✅ Email sent successfully to {to_email}")
+        print(f"✅ Email sent successfully to {len(recipients)} recipients")
         return True
         
     except Exception as e:

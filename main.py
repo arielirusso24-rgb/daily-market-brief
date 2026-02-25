@@ -79,10 +79,48 @@ def main():
     full_output = f"{market_formatted}\n\n{headlines_formatted}\n\n{'=' * 80}\n📋 DAILY MARKET BRIEF\n{'=' * 80}\n{brief}"
     write_to_log(full_output)
     
-    # Send email
+    # Save brief as JSON for dashboard
+    import json
+    briefs_dir = Path("docs/briefs")
+    briefs_dir.mkdir(parents=True, exist_ok=True)
+    
+    brief_data = {
+        'date': datetime.now().isoformat(),
+        'date_formatted': datetime.now().strftime('%B %d, %Y'),
+        'market_summary': {
+            name: {
+                'price': data['latest_price'],
+                'change': data['change_percent']
+            }
+            for name, data in market_data.items()
+            if not name.startswith('_') and data.get('is_index')
+        },
+        'brief': brief,
+    }
+    
+    brief_file = briefs_dir / f"{datetime.now().strftime('%Y-%m-%d')}.json"
+    with open(brief_file, 'w') as f:
+        json.dump(brief_data, f, indent=2)
+    
+    print(f"✅ Brief saved to {brief_file}")
+    
+    # Generate charts
+    print("\n📊 Generating charts...")
+    from chart_generator import create_index_chart, create_sector_performance_chart
+    
+    charts_html = ""
+    try:
+        index_chart = create_index_chart()
+        sector_chart = create_sector_performance_chart(market_data)
+        charts_html = index_chart + "<br><br>" + sector_chart
+        print("✅ Charts generated")
+    except Exception as e:
+        print(f"⚠️ Could not generate charts: {e}")
+    
+    # Send email with charts
     print("📧 Sending email...")
     email_subject = f"Daily Market Brief - {datetime.now().strftime('%B %d, %Y')}"
-    send_email_brief(email_subject, market_formatted, headlines, brief)
+    send_email_brief(email_subject, market_formatted, headlines, brief, charts_html)
     
     print("\n✨ Done!\n")
 
