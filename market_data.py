@@ -48,6 +48,19 @@ _FALLBACK_UNIVERSE = {
 TOP_N = 5
 BIG_MOVE_THRESHOLD = 4.0
 
+# Personal watchlist - companies Ariel always wants to see, regardless of how
+# they rank in the broad market. The movers table shows the 5 best/worst of
+# THESE alongside the 5 best/worst of the whole S&P 500. Edit freely.
+WATCHLIST = {
+    "AAPL": "Apple", "MSFT": "Microsoft", "NVDA": "Nvidia", "AMZN": "Amazon",
+    "GOOGL": "Alphabet", "META": "Meta", "TSLA": "Tesla", "BRK-B": "Berkshire",
+    "JPM": "JPMorgan", "V": "Visa", "UNH": "UnitedHealth", "LLY": "Eli Lilly",
+    "JNJ": "J&J", "WMT": "Walmart", "COST": "Costco", "KO": "Coca-Cola",
+    "XOM": "Exxon", "CVX": "Chevron", "AVGO": "Broadcom", "AMD": "AMD",
+    "CRM": "Salesforce", "ADBE": "Adobe", "NOW": "ServiceNow", "PLTR": "Palantir",
+    "TSM": "TSMC", "SNOW": "Snowflake",
+}
+
 
 def get_sp500_universe():
     """Return {yahoo_symbol: (company_name, sector)} for current S&P 500.
@@ -162,7 +175,48 @@ def get_market_data():
     all_data["_all_stocks"] = stock_data
     all_data["_universe_size"] = len(stock_data)
 
+    # --- Personal watchlist: 5 best / 5 worst of Ariel's tracked names ---
+    watchlist = _fetch_watchlist(WATCHLIST)
+    watchlist.sort(key=lambda x: x["change_percent"], reverse=True)
+    market_g = {s["symbol"] for s in gainers}
+    market_l = {s["symbol"] for s in losers}
+    all_data["_watchlist_gainers"] = [
+        s for s in watchlist if s["symbol"] not in market_g][:TOP_N]
+    all_data["_watchlist_losers"] = [
+        s for s in reversed(watchlist) if s["symbol"] not in market_l][:TOP_N]
+
     return all_data
+
+
+def _fetch_watchlist(symbols_names):
+    """Fetch day's change for the personal watchlist (batched, table-only)."""
+    out = []
+    try:
+        batch = yf.download(
+            list(symbols_names.keys()),
+            period="5d",
+            group_by="ticker",
+            progress=False,
+            threads=True,
+        )
+        for symbol, name in symbols_names.items():
+            try:
+                closes = batch[symbol]["Close"]
+            except (KeyError, TypeError):
+                continue
+            latest, pct = _pct_change_from_closes(closes)
+            if latest is None:
+                continue
+            out.append({
+                "name": name,
+                "symbol": symbol,
+                "latest_price": round(latest, 2),
+                "change_percent": pct,
+                "is_index": False,
+            })
+    except Exception as e:
+        print(f"WARNING: watchlist fetch failed ({e})")
+    return out
 
 
 def _enrich_mover(stock):

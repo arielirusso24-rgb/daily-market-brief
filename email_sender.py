@@ -133,11 +133,12 @@ def _render_indices(market_data):
             f'margin:4px 0 8px;"><tr>{row}</tr></table>')
 
 
-def _mover_rows(stocks, positive):
-    color = GREEN if positive else RED
+def _mover_rows(stocks):
+    """Rows for a mover list; each row colored by its own sign."""
     rows = []
     for s in stocks:
         pct = s.get("change_percent", 0)
+        color = GREEN if pct >= 0 else RED
         sign = "+" if pct >= 0 else ""
         name = html.escape((s.get("name") or "")[:22])
         rows.append(
@@ -150,19 +151,33 @@ def _mover_rows(stocks, positive):
     return "".join(rows)
 
 
+def _subgroup(label, stocks):
+    if not stocks:
+        return ""
+    return (f'<div style="font-size:10px;letter-spacing:0.6px;text-transform:uppercase;'
+            f'color:{MUTED};font-weight:600;margin:12px 0 2px;">{label}</div>'
+            f'{_mover_rows(stocks)}')
+
+
 def _render_movers(market_data):
     gainers = market_data.get("_gainers", [])
     losers = market_data.get("_losers", [])
+    wl_gainers = market_data.get("_watchlist_gainers", [])
+    wl_losers = market_data.get("_watchlist_losers", [])
     if not gainers and not losers:
         return ""
-    label = ('font-size:11px;letter-spacing:1px;text-transform:uppercase;'
-             'font-weight:600;margin-bottom:6px;')
+    head = ('font-size:11px;letter-spacing:1px;text-transform:uppercase;'
+            'font-weight:600;margin-bottom:2px;')
+    col_g = (f'<div style="{head}color:{GREEN};">Top gainers</div>'
+             f'{_subgroup("S&amp;P 500 movers", gainers)}'
+             f'{_subgroup("Your watchlist", wl_gainers)}')
+    col_l = (f'<div style="{head}color:{RED};">Top decliners</div>'
+             f'{_subgroup("S&amp;P 500 movers", losers)}'
+             f'{_subgroup("Your watchlist", wl_losers)}')
     return (
         f'<table style="width:100%;border-collapse:collapse;margin:4px 0;"><tr>'
-        f'<td style="width:50%;vertical-align:top;padding-right:14px;">'
-        f'<div style="{label}color:{GREEN};">Top gainers</div>{_mover_rows(gainers, True)}</td>'
-        f'<td style="width:50%;vertical-align:top;padding-left:14px;">'
-        f'<div style="{label}color:{RED};">Top decliners</div>{_mover_rows(losers, False)}</td>'
+        f'<td style="width:50%;vertical-align:top;padding-right:14px;">{col_g}</td>'
+        f'<td style="width:50%;vertical-align:top;padding-left:14px;">{col_l}</td>'
         f'</tr></table>'
     )
 
