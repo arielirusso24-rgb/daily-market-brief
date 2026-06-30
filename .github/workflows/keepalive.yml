@@ -1,12 +1,28 @@
 name: Keepalive
 
+# GitHub disables scheduled workflows after 60 days with no repo commits.
+# This makes a tiny commit twice a month so the daily/weekly briefs never get
+# auto-disabled, even when nobody edits the repo by hand.
+
 on:
   schedule:
-    - cron: '0 12 1 * *'
+    - cron: '0 12 1,15 * *'   # 1st and 15th of each month at 12:00 UTC
+  workflow_dispatch:           # also runnable manually from the Actions tab
+
+permissions:
+  contents: write
 
 jobs:
   keepalive:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: gautamkrishnar/keepalive-workflow@v1
+      - uses: actions/checkout@v4
+
+      - name: Stamp keepalive file and commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          date -u +"Last keepalive: %Y-%m-%dT%H:%M:%SZ" > .github/last-keepalive.txt
+          git add .github/last-keepalive.txt
+          git commit -m "chore: keepalive [skip ci]" || { echo "Nothing to commit"; exit 0; }
+          git push
