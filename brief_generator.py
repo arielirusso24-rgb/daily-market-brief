@@ -63,6 +63,7 @@ def generate_brief(market_data, headlines):
     try:
         # Import here to avoid any initialization issues
         from anthropic import Anthropic
+        from market_data import BIG_MOVE_THRESHOLD
         
         # Initialize client with ONLY api_key - nothing else
         client = Anthropic(api_key=api_key)
@@ -74,17 +75,23 @@ def generate_brief(market_data, headlines):
                 sign = "+" if data['change_percent'] >= 0 else ""
                 market_lines.append(f"{name}: ${data['latest_price']:.2f} ({sign}{data['change_percent']:.2f}%)")
         
-        # Format gainers
-        gainers = []
-        if '_gainers' in market_data:
-            for stock in market_data['_gainers'][:5]:
-                gainers.append(f"{stock['name']} ({stock['symbol']}): ${stock['latest_price']:.2f} (+{stock['change_percent']:.2f}%) | {stock.get('sector', 'N/A')}")
-        
-        # Format losers
-        losers = []
-        if '_losers' in market_data:
-            for stock in market_data['_losers'][:5]:
-                losers.append(f"{stock['name']} ({stock['symbol']}): ${stock['latest_price']:.2f} ({stock['change_percent']:.2f}%) | {stock.get('sector', 'N/A')}")
+        # Format gainers / losers with business context + per-ticker news
+        def format_movers(stocks):
+            blocks = []
+            for stock in stocks[:5]:
+                sign = "+" if stock['change_percent'] >= 0 else ""
+                block = [
+                    f"{stock['name']} ({stock['symbol']}): ${stock['latest_price']:.2f} ({sign}{stock['change_percent']:.2f}%) | {stock.get('sector', 'N/A')}"
+                ]
+                if stock.get('business'):
+                    block.append(f"   What they do: {stock['business']}")
+                if stock.get('news'):
+                    block.append("   Recent news: " + " | ".join(stock['news'][:3]))
+                blocks.append("\n".join(block))
+            return blocks
+
+        gainers = format_movers(market_data.get('_gainers', []))
+        losers = format_movers(market_data.get('_losers', []))
         
         # Format sectors
         sector_summary = get_sector_summary(market_data)
@@ -96,8 +103,11 @@ def generate_brief(market_data, headlines):
             for h in headlines[:6]:
                 headline_texts.append(f"- {h['title']} ({h['source']})")
         
+        universe_size = market_data.get('_universe_size', 'the S&P 500')
+
         # Build prompt
-        prompt = f"""Create a professional market brief for {datetime.now().strftime("%B %d, %Y")}.
+        prompt = f"""Create a concise, professional market brief for {datetime.now().strftime("%B %d, %Y")}.
+The gainers/losers below are the best- and worst-performing names out of {universe_size} S&P 500 companies scanned today, so they rotate daily. Each comes with a short description of what the company does and recent news headlines.
 
 INDICES (vs previous close):
 {chr(10).join(market_lines)}
@@ -108,31 +118,24 @@ TOP GAINERS:
 TOP DECLINERS:
 {chr(10).join(losers)}
 
-SECTORS:
+SECTOR AVERAGES:
 {chr(10).join(sectors)}
 
-HEADLINES:
+MARKET HEADLINES:
 {chr(10).join(headline_texts) if headline_texts else "Limited headlines today"}
 
-Write a brief with:
+Write a SHORT brief (keep it tight - quality over length) with:
 
-**KEY MARKET MOVERS** (4-5 bullets)
-- Explain top gainers/losers with specific reasons
-- Connect to broader market themes
+**KEY MOVERS** (one bullet per top gainer and top decliner)
+- For each: one line on what the company does, then the likely reason it moved, grounded in the news provided. If a name moved more than {BIG_MOVE_THRESHOLD:.0f}%, give a clearer cause (earnings, guidance, M&A, analyst action, sector news). If the reason isn't in the data, say so briefly instead of inventing one.
 
-**GEOPOLITICAL & MACRO** (2-3 bullets)
-- Key developments from headlines
-- If limited news, note domestic focus
-
-**SECTOR ANALYSIS** (2-3 bullets)
-- Leading/lagging sectors
-- Rotation patterns
+**SECTOR SPOTLIGHT** (only if warranted)
+- If one segment clearly stands out today (e.g. biotech, semiconductors, energy, mobility/EV, financials), add 2-3 sentences digging into what's driving it. If nothing stands out, write "No single segment dominated today." and move on.
 
 **WHAT MATTERS TODAY** (1-2 sentences)
-- Key takeaway for investors
-- Levels to watch
+- The key takeaway for investors and any levels to watch.
 
-Be specific with numbers, professional tone."""
+Be specific with numbers, professional but plain English. Do not pad."""
 
         # Call API with minimal parameters
         response = client.messages.create(
