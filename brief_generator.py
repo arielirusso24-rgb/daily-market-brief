@@ -156,7 +156,7 @@ If a theme is clearly driving the day - biotech, semiconductors, energy, mobilit
 3-4 sentences connecting today's market headlines to the bigger picture - rates, the economy, geopolitics, earnings season, whatever the news points to. Synthesize across the different outlets; don't just relist headlines.
 
 ## The bottom line
-2-3 sentences: the takeaway worth remembering, plus specific things to watch next (levels, events, catalysts). Make it land."""
+A real wrap-up of the trading day (a full paragraph, ~5-7 sentences), NOT a single closing line. Recap how the day actually played out: where the major indices landed and the overall tone (risk-on/risk-off, broad vs. narrow), which sectors led and lagged, the day's defining storyline tying the movers and headlines together, and how breadth/rotation looked. Then close with the key takeaway and specific things to watch next (levels, events, catalysts). Make it read like the summary someone would want if they only had time to read one section."""
 
         # Call API
         response = client.messages.create(
