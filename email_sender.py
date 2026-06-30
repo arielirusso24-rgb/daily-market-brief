@@ -221,7 +221,7 @@ def build_email_html(market_data, headlines, brief, charts_html=""):
   <div style="{pad}padding-top:24px;padding-bottom:28px;">
     <div style="border-top:1px solid {HAIR};padding-top:14px;font-size:11px;color:{MUTED};line-height:1.6;">
       Daily Market Brief &middot; S&amp;P 500 scan via yfinance &middot; multi-source RSS &middot; analysis by Claude<br>
-      Automated &middot; delivered each morning at the US market open.
+      Automated &middot; delivered each morning, 30 minutes after the US market open.
     </div>
   </div>
 

@@ -2,7 +2,7 @@ name: Daily Market Brief
 
 on:
   schedule:
-    - cron: '30 13 * * *'  # 9:30 AM ET = 1:30 PM UTC
+    - cron: '0 14 * * *'  # 10:00 AM ET (30 min after NY open) = 2:00 PM UTC
   workflow_dispatch:
 
 jobs:
