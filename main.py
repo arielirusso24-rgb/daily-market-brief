@@ -125,7 +125,8 @@ def main():
     # Send email
     print("📧 Sending email...")
     email_subject = f"Daily Market Brief - {datetime.now().strftime('%B %d, %Y')}"
-    send_email_brief(email_subject, market_formatted, headlines, brief, charts_html)
+    send_email_brief(email_subject, market_formatted, headlines, brief,
+                     charts_html, market_data=market_data)
     
     print("\n✨ Done!\n")
 

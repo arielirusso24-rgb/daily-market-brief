@@ -141,24 +141,27 @@ SECTOR AVERAGES:
 MARKET HEADLINES (from multiple outlets):
 {chr(10).join(headline_texts) if headline_texts else "Limited headlines today"}
 
-Write the brief in this structure (keep it tight - aim for a 2-minute read):
+Write a substantial but readable brief (a full one-page read, not a tweet). Use these sections, with markdown headings exactly as written:
 
-**THE OPEN** (2-3 sentences)
-A punchy lede that captures the day's mood. Lead with the most interesting thing that happened, not a recap of index levels. Hook the reader.
+## The open
+A punchy 3-4 sentence lede that captures the day's mood. Lead with the most interesting thing that happened, not a recap of index levels. Hook the reader, then set up what follows.
 
-**WHAT MOVED & WHY** (one tight bullet per top gainer and decliner)
-For each: who they are in a few words, then the real reason it moved, grounded in the headlines provided. For moves above {BIG_MOVE_THRESHOLD:.0f}%, pin down the catalyst (earnings, guidance, M&A, analyst calls, sector news). If the data doesn't explain it, say so honestly - "no obvious catalyst; looks like momentum" beats a made-up reason.
+## What moved & why
+Cover EVERY top gainer and decliner listed above - one tight bullet each. For each: who the company is in a few words, then the real reason it moved, grounded in the headlines provided. For moves above {BIG_MOVE_THRESHOLD:.0f}%, pin down the catalyst (earnings, guidance, M&A, analyst calls, sector news). If the data doesn't explain it, say so honestly - "no obvious catalyst; looks like momentum" beats a made-up reason.
 
-**SECTOR SPOTLIGHT** (only if one segment truly stands out)
-If a theme is clearly driving the day - biotech, semiconductors, energy, mobility/EV, financials, AI - spend 2-3 sentences on what's behind it and why it matters. If nothing stands out, just say so in a line and move on.
+## Sector spotlight
+If a theme is clearly driving the day - biotech, semiconductors, energy, mobility/EV, financials, AI - spend 3-4 sentences on what's behind it, which names it's hitting, and why it matters. If nothing stands out, say so briefly and instead unpack the most interesting sector rotation in the data.
 
-**THE BOTTOM LINE** (1-2 sentences)
-The one takeaway worth remembering, plus anything to watch next. Make it land."""
+## The macro backdrop
+3-4 sentences connecting today's market headlines to the bigger picture - rates, the economy, geopolitics, earnings season, whatever the news points to. Synthesize across the different outlets; don't just relist headlines.
+
+## The bottom line
+2-3 sentences: the takeaway worth remembering, plus specific things to watch next (levels, events, catalysts). Make it land."""
 
         # Call API
         response = client.messages.create(
             model="claude-sonnet-4-6",
-            max_tokens=2000,
+            max_tokens=3000,
             system=system_prompt,
             messages=[{"role": "user", "content": prompt}]
         )
