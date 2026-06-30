@@ -97,17 +97,34 @@ def generate_brief(market_data, headlines):
         sector_summary = get_sector_summary(market_data)
         sectors = [f"{sector}: {change:+.2f}%" for sector, change in sorted(sector_summary.items(), key=lambda x: x[1], reverse=True)[:8]]
         
-        # Format headlines
+        # Format headlines (title + short description for richer context)
         headline_texts = []
         if headlines:
-            for h in headlines[:6]:
-                headline_texts.append(f"- {h['title']} ({h['source']})")
+            for h in headlines[:8]:
+                line = f"- {h['title']} ({h['source']})"
+                desc = h.get('description')
+                if desc and desc != "Click link for full story":
+                    line += f"\n    {desc}"
+                headline_texts.append(line)
         
         universe_size = market_data.get('_universe_size', 'the S&P 500')
 
+        # Voice/persona - keeps the brief sharp and human instead of robotic
+        system_prompt = (
+            "You write a daily markets newsletter that people actually enjoy reading - "
+            "think the wit and clarity of Morning Brew or Matt Levine, with the credibility "
+            "of a buy-side analyst. Your voice is conversational, sharp, and occasionally "
+            "wry, but never goofy and never at the expense of accuracy. You explain WHY "
+            "things happened in plain English, connect dots between stories, and respect the "
+            "reader's intelligence and time. Hard rules: every number you cite must come from "
+            "the data provided; never invent a catalyst - if the reason for a move isn't in "
+            "the data, say so plainly; no hype, no filler, no generic 'investors are watching "
+            "closely' clichés. Make it engaging through insight and clean writing, not "
+            "exclamation marks."
+        )
+
         # Build prompt
-        prompt = f"""Create a concise, professional market brief for {datetime.now().strftime("%B %d, %Y")}.
-The gainers/losers below are the best- and worst-performing names out of {universe_size} S&P 500 companies scanned today, so they rotate daily. Each comes with a short description of what the company does and recent news headlines.
+        prompt = f"""Here's today's market data for {datetime.now().strftime("%A, %B %d, %Y")}. The gainers and losers are the best and worst performers out of {universe_size} S&P 500 names scanned today (they rotate daily), each with a note on what the company does and recent headlines.
 
 INDICES (vs previous close):
 {chr(10).join(market_lines)}
@@ -121,26 +138,28 @@ TOP DECLINERS:
 SECTOR AVERAGES:
 {chr(10).join(sectors)}
 
-MARKET HEADLINES:
+MARKET HEADLINES (from multiple outlets):
 {chr(10).join(headline_texts) if headline_texts else "Limited headlines today"}
 
-Write a SHORT brief (keep it tight - quality over length) with:
+Write the brief in this structure (keep it tight - aim for a 2-minute read):
 
-**KEY MOVERS** (one bullet per top gainer and top decliner)
-- For each: one line on what the company does, then the likely reason it moved, grounded in the news provided. If a name moved more than {BIG_MOVE_THRESHOLD:.0f}%, give a clearer cause (earnings, guidance, M&A, analyst action, sector news). If the reason isn't in the data, say so briefly instead of inventing one.
+**THE OPEN** (2-3 sentences)
+A punchy lede that captures the day's mood. Lead with the most interesting thing that happened, not a recap of index levels. Hook the reader.
 
-**SECTOR SPOTLIGHT** (only if warranted)
-- If one segment clearly stands out today (e.g. biotech, semiconductors, energy, mobility/EV, financials), add 2-3 sentences digging into what's driving it. If nothing stands out, write "No single segment dominated today." and move on.
+**WHAT MOVED & WHY** (one tight bullet per top gainer and decliner)
+For each: who they are in a few words, then the real reason it moved, grounded in the headlines provided. For moves above {BIG_MOVE_THRESHOLD:.0f}%, pin down the catalyst (earnings, guidance, M&A, analyst calls, sector news). If the data doesn't explain it, say so honestly - "no obvious catalyst; looks like momentum" beats a made-up reason.
 
-**WHAT MATTERS TODAY** (1-2 sentences)
-- The key takeaway for investors and any levels to watch.
+**SECTOR SPOTLIGHT** (only if one segment truly stands out)
+If a theme is clearly driving the day - biotech, semiconductors, energy, mobility/EV, financials, AI - spend 2-3 sentences on what's behind it and why it matters. If nothing stands out, just say so in a line and move on.
 
-Be specific with numbers, professional but plain English. Do not pad."""
+**THE BOTTOM LINE** (1-2 sentences)
+The one takeaway worth remembering, plus anything to watch next. Make it land."""
 
-        # Call API with minimal parameters
+        # Call API
         response = client.messages.create(
             model="claude-sonnet-4-6",
             max_tokens=2000,
+            system=system_prompt,
             messages=[{"role": "user", "content": prompt}]
         )
         

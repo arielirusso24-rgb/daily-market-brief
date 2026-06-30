@@ -16,3 +16,4 @@ token.pickle
 .DS_Store
 cron_log.txt
 market_log.txt
+.venv/
