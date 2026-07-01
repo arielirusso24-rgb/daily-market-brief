@@ -2,7 +2,8 @@ name: Daily Market Brief
 
 on:
   schedule:
-    - cron: '0 14 * * *'  # 10:00 AM ET (30 min after NY open) = 2:00 PM UTC
+    - cron: '5 14 * * *'  # ~10 AM ET (NY). Off the top-of-hour: GitHub drops/delays :00 runs more.
+                          # Summer (EDT) 10 AM = 14:00 UTC. In winter (EST) change to '5 15 * * *'.
   workflow_dispatch:
 
 jobs:
