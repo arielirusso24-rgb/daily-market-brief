@@ -1,7 +1,7 @@
 name: Daily Market Brief
 
 # Who sends the 10 AM (New York) brief:
-#   1. PRIMARY  - Ariel's Mac dispatches this workflow at 10:00 AM New York time
+#   1. PRIMARY  - Ariel's Mac dispatches this workflow at 10:00 AM New York time, Mon-Fri
 #                 (launchd job in ~/daily-market-brief-trigger). Dispatches start
 #                 instantly, unlike GitHub's scheduler.
 #   2. FALLBACK - the cron below. GitHub runs scheduled workflows hours late on
@@ -11,7 +11,7 @@ name: Daily Market Brief
 
 on:
   schedule:
-    - cron: '5 15 * * *'  # fallback only: 10:05 AM EST / 11:05 AM EDT, usually delayed by GitHub
+    - cron: '5 15 * * 1-5'  # fallback only, Mon-Fri (no weekend briefs): 10:05 AM EST / 11:05 AM EDT, usually delayed by GitHub
   workflow_dispatch:
 
 permissions:
