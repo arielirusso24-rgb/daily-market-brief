@@ -1,33 +1,69 @@
 name: Daily Market Brief
 
+# Who sends the 10 AM (New York) brief:
+#   1. PRIMARY  - Ariel's Mac dispatches this workflow at 10:00 AM New York time
+#                 (launchd job in ~/daily-market-brief-trigger). Dispatches start
+#                 instantly, unlike GitHub's scheduler.
+#   2. FALLBACK - the cron below. GitHub runs scheduled workflows hours late on
+#                 this repo, so it only matters on days the Mac was off. The
+#                 "already sent today?" step makes it skip when the brief has
+#                 already gone out, so there are never two emails in one day.
+
 on:
   schedule:
-    - cron: '5 14 * * *'  # ~10 AM ET (NY). Off the top-of-hour: GitHub drops/delays :00 runs more.
-                          # Summer (EDT) 10 AM = 14:00 UTC. In winter (EST) change to '5 15 * * *'.
+    - cron: '5 15 * * *'  # fallback only: 10:05 AM EST / 11:05 AM EDT, usually delayed by GitHub
   workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
 
 jobs:
   send-brief:
     runs-on: ubuntu-latest
-    
+
     steps:
+    - name: Already sent today?
+      id: dedupe
+      if: github.event_name == 'schedule'
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        today=$(TZ=America/New_York date +%F)
+        midnight=$(TZ=America/New_York date -d "$today 00:00:00" +%s)
+        others=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow daily-brief.yml --limit 30 \
+          --json databaseId,createdAt,status,conclusion \
+          --jq "[.[] | select(.databaseId != $GITHUB_RUN_ID)
+                     | select((.createdAt | fromdateiso8601) >= $midnight)
+                     | select(.conclusion == \"success\" or .status != \"completed\")] | length")
+        echo "Other runs today (NY date $today) that sent or are sending: $others"
+        if [ "$others" != "0" ]; then
+          echo "skip=true" >> "$GITHUB_OUTPUT"
+          echo "Brief already sent today - skipping this scheduled run."
+        fi
+
     - name: Checkout code
+      if: steps.dedupe.outputs.skip != 'true'
       uses: actions/checkout@v3
-    
+
     - name: Set up Python
+      if: steps.dedupe.outputs.skip != 'true'
       uses: actions/setup-python@v4
       with:
         python-version: '3.11'
-    
+
     - name: Clear pip cache
+      if: steps.dedupe.outputs.skip != 'true'
       run: pip cache purge || true
-    
+
     - name: Install dependencies
+      if: steps.dedupe.outputs.skip != 'true'
       run: |
         python -m pip install --upgrade pip
         pip install --no-cache-dir -r requirements.txt
-    
+
     - name: Run market brief
+      if: steps.dedupe.outputs.skip != 'true'
       env:
         ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         GMAIL_ADDRESS: ${{ secrets.GMAIL_ADDRESS }}
